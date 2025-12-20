@@ -67,32 +67,34 @@ namespace CampusActivityHub.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin, Organizer")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Event model, IFormFile? imageFile, string TagsString) // TagsString з форми
+        public async Task<IActionResult> Create(Event model, string? TagsString)
         {
             ModelState.Remove("Organizer");
             ModelState.Remove("OrganizerId");
             ModelState.Remove("Category");
+            ModelState.Remove("Tags"); 
+            ModelState.Remove("Registrations");
+            ModelState.Remove("ImagePath");
 
             if (ModelState.IsValid)
             {
                 var user = await _userManager.GetUserAsync(User);
                 model.OrganizerId = user.Id;
 
-                if (imageFile != null)
-                {
-                    string fileName = Guid.NewGuid() + Path.GetExtension(imageFile.FileName);
-                    string path = Path.Combine(_appEnvironment.WebRootPath, "images", fileName);
-                    using (var stream = new FileStream(path, FileMode.Create)) await imageFile.CopyToAsync(stream);
-                    model.ImagePath = fileName;
-                }
+                model.ImagePath = "default.png";
 
+                model.Tags = new List<Tag>(); 
                 if (!string.IsNullOrEmpty(TagsString))
                 {
                     var tagNames = TagsString.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim());
                     foreach (var tagName in tagNames)
                     {
-                        var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName) 
-                                  ?? new Tag { Name = tagName };
+                        var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName);
+                        if (tag == null)
+                        {
+                            tag = new Tag { Name = tagName };
+                            _context.Tags.Add(tag);
+                        }
                         model.Tags.Add(tag);
                     }
                 }
@@ -100,7 +102,9 @@ namespace CampusActivityHub.Controllers
                 _context.Add(model);
                 await _context.SaveChangesAsync();
 
-                await _emailService.SendEmailAsync(user.Email, "Подію створено!", $"Ви створили подію: {model.Title}");
+                try {
+                    await _emailService.SendEmailAsync(user.Email, "Подію створено!", $"Ви створили подію: {model.Title}");
+                } catch {}
 
                 return RedirectToAction(nameof(Index));
             }

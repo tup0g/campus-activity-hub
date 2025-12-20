@@ -1,28 +1,18 @@
-using System.IO;
 using System.Threading.Tasks;
 
 namespace CampusActivityHub.Services
 {
     public interface IEmailService
     {
-        Task SendEmailAsync(string to, string subject, string body);
+        Task SendEmailAsync(string email, string subject, string message);
     }
 
-    public class FileEmailService : IEmailService
+    public class EmailService : IEmailService
     {
-        private readonly IWebHostEnvironment _env;
-
-        public FileEmailService(IWebHostEnvironment env)
+        public Task SendEmailAsync(string email, string subject, string message)
         {
-            _env = env;
-        }
-
-        public async Task SendEmailAsync(string to, string subject, string body)
-        {
-            string logPath = Path.Combine(_env.ContentRootPath, "sent_emails.txt");
-            string emailContent = $"--- EMAIL ---\nDATE: {DateTime.Now}\nTO: {to}\nSUBJECT: {subject}\nBODY: {body}\n----------------\n\n";
-            
-            await File.AppendAllTextAsync(logPath, emailContent);
+            System.Console.WriteLine($"[EMAIL MOCK] To: {email}, Subject: {subject}");
+            return Task.CompletedTask;
         }
     }
 }
