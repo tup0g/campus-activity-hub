@@ -1,0 +1,23 @@
+# --- Збірка та сміття (Generated files) ---
+bin/
+obj/
+
+# --- База даних (ДУЖЕ ВАЖЛИВО) ---
+# Інакше твоя локальна база полетить в інтернет
+*.db
+*.db-shm
+*.db-wal
+
+# --- Налаштування редакторів (User-specific files) ---
+.vscode/
+.idea/
+.vs/
+*.user
+*.suo
+
+# --- Системні файли Mac (оскільки ти на Mac) ---
+.DS_Store
+
+# --- Логи та тимчасові файли ---
+*.log
+appsettings.Development.json

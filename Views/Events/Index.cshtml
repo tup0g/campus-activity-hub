@@ -1,0 +1,212 @@
+@using Microsoft.AspNetCore.Identity
+@using CampusActivityHub.Models
+@using CampusActivityHub.Extensions 
+@model IEnumerable<Event>
+@inject UserManager<User> UserManager
+
+@{
+    ViewData["Title"] = ViewBag.FilterName != null ? $"Події: {ViewBag.FilterName}" : "Всі події";
+    var currentUser = await UserManager.GetUserAsync(User);
+}
+
+<style>
+    /* -- СТИЛІ ДЛЯ ТЕМНИХ КАРТОК -- */
+    
+    .event-card { 
+        background-color: #212529; /* Темно-сірий фон картки замість білого */
+        border: 1px solid #343a40; /* Темна рамка */
+        border-radius: 12px; 
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    
+    .event-card:hover { 
+        transform: translateY(-5px); 
+        box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
+        border-color: #6f42c1; /* Фіолетова підсвітка при наведенні */
+    }
+
+    /* Верхня кольорова смужка (замість фото) */
+    .card-decoration {
+        height: 6px;
+        width: 100%;
+        background: linear-gradient(90deg, #0d6efd, #6610f2); /* Синій -> Фіолетовий */
+    }
+
+    /* Тексти */
+    .card-title { 
+        color: #f8f9fa; /* Майже білий заголовок */
+        font-weight: 700;
+        margin-top: 15px;
+    }
+    
+    .card-text { 
+        color: #adb5bd; /* Світло-сірий опис */
+    }
+    
+    .text-muted-custom {
+        color: #6c757d !important;
+        font-size: 0.9em;
+    }
+
+    /* Бейдж категорії */
+    .category-badge {
+        background-color: rgba(13, 110, 253, 0.15);
+        color: #6ea8fe;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        text-decoration: none;
+        border: 1px solid rgba(13, 110, 253, 0.3);
+    }
+
+    /* Кнопки */
+    .btn-join {
+        background: linear-gradient(45deg, #0d6efd, #6610f2);
+        border: none;
+        color: white;
+        font-weight: 500;
+    }
+    .btn-join:hover {
+        opacity: 0.9;
+        color: white;
+        box-shadow: 0 0 10px rgba(102, 16, 242, 0.5);
+    }
+    .btn-join:disabled {
+        background: #495057;
+        color: #adb5bd;
+    }
+    
+    .btn-already-joined {
+        background-color: rgba(25, 135, 84, 0.2);
+        color: #20c997;
+        border: 1px solid #198754;
+        cursor: default;
+    }
+</style>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h1 class="display-5 fw-bold text-white">@(ViewBag.FilterName ?? "Всі події")</h1>
+            <p class="text-white-50">Знайди подію до душі та приєднуйся! 🚀</p>
+        </div>
+    </div>
+
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="mb-4">
+             <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-outline-light rounded-pill px-4">
+                 <i class="bi bi-speedometer2 me-2"></i> Адмін панель
+             </a>
+        </div>
+    }
+
+    <div class="row g-4">
+        @foreach (var item in Model)
+        {
+            int registeredCount = item.Registrations?.Count ?? 0;
+            int placesLeft = item.MaxParticipants - registeredCount;
+            bool isRegistered = currentUser != null && item.Registrations.Any(r => r.UserId == currentUser.Id);
+
+            <div class="col-md-4">
+                <div class="event-card">
+                    <div class="card-decoration"></div>
+                    
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="category-badge">@item.Category?.Name</span>
+                            @Html.EventStatus(item)
+                        </div>
+
+                        <h4 class="card-title">@item.Title</h4>
+                        
+                        <div class="mb-3 text-muted-custom">
+                            <i class="bi bi-calendar-event me-2"></i>@item.Date.ToString("d MMMM HH:mm")
+                        </div>
+                        
+                        <p class="card-text flex-grow-1">@item.Description</p>
+                        
+                        <hr style="border-color: #495057;">
+
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <small class="text-white-50">
+                                <i class="bi bi-people-fill me-1"></i>
+                                Вільно: <strong class="text-white" id="places-@item.Id">@placesLeft</strong> / @item.MaxParticipants
+                            </small>
+
+                            @if (User.Identity.IsAuthenticated)
+                            {
+                                if (isRegistered)
+                                {
+                                    <button class="btn btn-already-joined rounded-pill px-3 btn-sm" disabled>
+                                        <i class="bi bi-check-circle-fill me-1"></i> Ви йдете
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button onclick="joinEvent(@item.Id)" id="btn-@item.Id" 
+                                            class="btn btn-join rounded-pill px-4 btn-sm" 
+                                            @(placesLeft <= 0 ? "disabled" : "")>
+                                        Взяти участь
+                                    </button>
+                                }
+                            }
+                            else
+                            {
+                                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-secondary rounded-pill btn-sm">Увійти</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Скрипт для кнопки "Взяти участь" без перезавантаження
+    async function joinEvent(eventId) {
+        const button = document.getElementById(`btn-${eventId}`);
+        const placesSpan = document.getElementById(`places-${eventId}`);
+
+        // Блокуємо кнопку і показуємо спінер
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        button.disabled = true;
+
+        try {
+            const response = await fetch(`/Events/JoinAjax?eventId=${eventId}`, {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Змінюємо вигляд кнопки на "Ви йдете"
+                button.className = "btn btn-already-joined rounded-pill px-3 btn-sm";
+                button.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Ви йдете';
+                
+                // Оновлюємо кількість місць
+                placesSpan.innerText = data.placesLeft;
+            } else {
+                alert(data.message);
+                button.innerHTML = 'Взяти участь';
+                button.disabled = false;
+            }
+        } catch (error) {
+            console.error('Помилка:', error);
+            button.innerHTML = 'Взяти участь';
+            button.disabled = false;
+        }
+    }
+</script>
+}
+@Html.AntiForgeryToken()

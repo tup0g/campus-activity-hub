@@ -1,0 +1,128 @@
+@model CampusActivityHub.ViewModels.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Аналітика";
+}
+
+<style>
+    /* Темні стилі для аналітики */
+    .dashboard-card {
+        background-color: #212529;
+        border: 1px solid #343a40;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    h2, h4 { color: #fff; font-weight: 700; }
+</style>
+
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-4">
+        <i class="bi bi-bar-chart-fill fs-2 text-primary me-3"></i>
+        <h2 class="mb-0">Аналітика платформи</h2>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="dashboard-card h-100">
+                <h4 class="mb-4 text-center">Розподіл подій за категоріями</h4>
+                <div class="chart-container">
+                    <canvas id="categoriesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="dashboard-card h-100">
+                <h4 class="mb-4 text-center">ТОП-5 популярних подій</h4>
+                <div class="chart-container">
+                    <canvas id="eventsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4 text-center">
+        <a asp-controller="Events" asp-action="Index" class="btn btn-outline-light rounded-pill px-4">
+            <i class="bi bi-arrow-left me-2"></i> Назавжди до подій
+        </a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Налаштування глобальних кольорів для темної теми
+    Chart.defaults.color = '#adb5bd'; // Колір тексту (світло-сірий)
+    Chart.defaults.borderColor = '#343a40'; // Колір ліній сітки (темний)
+
+    // --- Дані для категорій ---
+    const categoryLabels = @Html.Raw(Json.Serialize(Model.CategoryLabels));
+    const categoryData = @Html.Raw(Json.Serialize(Model.CategoryCounts));
+
+    // --- Дані для подій ---
+    const eventLabels = @Html.Raw(Json.Serialize(Model.EventLabels));
+    const eventData = @Html.Raw(Json.Serialize(Model.EventParticipantsCounts));
+
+    // 1. Побудова Кругової діаграми (Pie Chart)
+    new Chart(document.getElementById('categoriesChart'), {
+        type: 'doughnut', // 'doughnut' виглядає сучасніше ніж 'pie'
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                data: categoryData,
+                backgroundColor: [
+                    '#0d6efd', // Синій
+                    '#6610f2', // Фіолетовий
+                    '#d63384', // Рожевий
+                    '#fd7e14', // Помаранчевий
+                    '#ffc107', // Жовтий
+                    '#198754'  // Зелений
+                ],
+                borderWidth: 0 // Прибираємо білі рамки
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+
+    // 2. Побудова Стовпчикової діаграми (Bar Chart)
+    new Chart(document.getElementById('eventsChart'), {
+        type: 'bar',
+        data: {
+            labels: eventLabels,
+            datasets: [{
+                label: 'Кількість учасників',
+                data: eventData,
+                backgroundColor: '#0d6efd',
+                borderRadius: 5 // Закруглені верхівки стовпчиків
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#343a40' } // Темні лінії сітки
+                },
+                x: {
+                    grid: { display: false } // Прибираємо вертикальні лінії
+                }
+            },
+            plugins: {
+                legend: { display: false } // Ховаємо легенду, бо і так зрозуміло
+            }
+        }
+    });
+</script>

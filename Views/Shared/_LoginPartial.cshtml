@@ -1,0 +1,43 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using CampusActivityHub.Models
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+
+<ul class="navbar-nav">
+@if (SignInManager.IsSignedIn(User))
+{
+    // Отримуємо користувача безпечно
+    var user = await UserManager.GetUserAsync(User);
+    
+    if (user != null)
+    {
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">
+                👋 Привіт, @(user.FirstName ?? user.UserName)!
+            </a>
+        </li>
+        <li class="nav-item">
+            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Events", new { area = "" })">
+                <button type="submit" class="nav-link btn btn-link text-dark">Вийти</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+             <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Events", new { area = "" })">
+                <button type="submit" class="nav-link btn btn-link text-dark">⚠️ Помилка входу (Натисніть щоб вийти)</button>
+            </form>
+        </li>
+    }
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Реєстрація</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Увійти</a>
+    </li>
+}
+</ul>
